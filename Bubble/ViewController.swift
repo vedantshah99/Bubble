@@ -215,17 +215,31 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
     
     func updateText(text: String, atPosition position: SCNVector3) {
         let textGeometry = SCNText(string: text, extrusionDepth: 1.0)
-        
         textGeometry.firstMaterial?.diffuse.contents = UIColor.red
-        
+
         textNode.removeFromParentNode()
-        
+
         textNode = SCNNode(geometry: textGeometry)
-        
         textNode.position = SCNVector3(position.x, position.y + 0.01, position.z)
-        
         textNode.scale = SCNVector3(0.01, 0.01, 0.01)
+
+        // Create a box that will act as a background for the text
+        let (min, max) = textNode.boundingBox
         
+        let boxWidth = CGFloat(max.x - min.x) + 5
+        let boxHeight = CGFloat(max.y - min.y) + 3
+        let box = SCNBox(width: boxWidth, height: boxHeight, length: CGFloat(max.z - min.z), chamferRadius: 0.0)
+        box.firstMaterial?.diffuse.contents = UIColor.white
+        
+        print(boxHeight * 0.45)
+
+        // Create a node for the box and position it behind the text
+        let boxNode = SCNNode(geometry: box)
+        boxNode.position = SCNVector3(CGFloat(textNode.position.x) + (boxWidth * 0.45) , CGFloat(textNode.position.y) + 6.3, -0.01) // Adjust the z-position to move the box behind the text
+
+        // Add the box node as a child of the text node
+        textNode.addChildNode(boxNode)
+
         sceneView.scene.rootNode.addChildNode(textNode)
     }
     
