@@ -67,15 +67,41 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
         // adjust for autorotate
         button.translatesAutoresizingMaskIntoConstraints = false
 
-        NSLayoutConstraint.activate([
-            button.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            button.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -30),
-            button.widthAnchor.constraint(equalToConstant: 100),
-            button.heightAnchor.constraint(equalToConstant: 100)
-        ])
+        // Set up constraints
+        portraitConstraints = [
+            button.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
+            button.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -10),
+        ]
+
+        landscapeConstraints = [
+            button.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
+            button.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10),
+        ]
+
+        button.widthAnchor.constraint(equalToConstant: 100).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 100).isActive = true
+
+        updateConstraints()
         
         // Set the view's delegate
         sceneView.delegate = self
+    }
+    
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate(alongsideTransition: { _ in
+            self.updateConstraints()
+        })
+    }
+
+    func updateConstraints() {
+        if UIDevice.current.orientation.isLandscape {
+            NSLayoutConstraint.deactivate(portraitConstraints)
+            NSLayoutConstraint.activate(landscapeConstraints)
+        } else {
+            NSLayoutConstraint.deactivate(landscapeConstraints)
+            NSLayoutConstraint.activate(portraitConstraints)
+        }
     }
     
     override public func viewDidAppear(_ animated: Bool) {
@@ -241,7 +267,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
     }
     
     func updateText(text: String, atPosition position: SCNVector3) {
-        let textGeometry = SCNText(string: text, extrusionDepth: 1.0)
+        let textGeometry = SCNText(string: insertNewlines(string: text, every: 20), extrusionDepth: 1.0)
         textGeometry.firstMaterial?.diffuse.contents = UIColor.red
 
         textNode.removeFromParentNode()
@@ -268,6 +294,18 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
         textNode.addChildNode(boxNode)
 
         sceneView.scene.rootNode.addChildNode(textNode)
+    }
+    
+    func insertNewlines(string: String, every n: Int) -> String {
+        var result = ""
+        let characters = Array(string)
+        for i in 0..<characters.count {
+            if i % n == 0 && i != 0 {
+                result += "\n"
+            }
+            result.append(characters[i])
+        }
+        return result
     }
     
     @IBAction func buttonPressed(_ sender: UIButton) {
