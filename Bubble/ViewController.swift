@@ -17,6 +17,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
     
     @IBOutlet weak var button: UIButton!
     
+    
     var textNode = SCNNode()
     var timer: Timer?
     
@@ -33,6 +34,15 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
     private let audioEngine = AVAudioEngine()
     
     
+    // images
+    let earFill = UIImage(systemName: "ear.fill")
+    let earEmpty = UIImage(systemName: "ear")
+    
+    
+    var portraitConstraints: [NSLayoutConstraint] = []
+    var landscapeConstraints: [NSLayoutConstraint] = []
+    
+    
     // MARK: Custom LM Support
     @available(iOS 17, *)
     private var lmConfiguration: SFSpeechLanguageModel.Configuration {
@@ -43,10 +53,26 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
         return SFSpeechLanguageModel.Configuration(languageModel: dynamicLanguageModel, vocabulary: dynamicVocabulary)
     }
     
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         button.isEnabled = false
+        button.frame = CGRect(x: 141, y: 680, width: 100, height: 100) // Set the button's frame
+        button.layer.cornerRadius = 50 // Half of the button's width or height
+        button.clipsToBounds = true // This line is needed to make the cornerRadius take effect
+        self.button.tintColor = UIColor(.gray)
+        
+        
+        // adjust for autorotate
+        button.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            button.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            button.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -30),
+            button.widthAnchor.constraint(equalToConstant: 100),
+            button.heightAnchor.constraint(equalToConstant: 100)
+        ])
         
         // Set the view's delegate
         sceneView.delegate = self
@@ -164,7 +190,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
                 self.recognitionTask = nil
                 
                 self.button.isEnabled = true
-                self.button.setTitle("StartRecording", for: [])
+                self.button.setImage(self.earEmpty, for: [])
+                self.button.tintColor = UIColor(.gray)
             }
         }
         
@@ -189,10 +216,10 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
     public func speechRecognizer(_ speechRecognizer: SFSpeechRecognizer, availabilityDidChange available: Bool) {
         if available {
             button.isEnabled = true
-            button.setTitle("start recording", for: [])
+            //button.setImage(earEmpty, for: [])
         } else {
             button.isEnabled = false
-            button.setTitle("recognition not available", for: .disabled)
+            //button.setImage(ear, for: .disabled)
         }
     }
     
@@ -248,14 +275,18 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
             audioEngine.stop()
             recognitionRequest?.endAudio()
             button.isEnabled = false
-            button.setTitle("stopping", for: .disabled)
+            button.setImage(earEmpty, for: [])
+            self.button.tintColor = UIColor(.gray)
+            
             
         } else {
             do {
                 try startRecording()
-                button.setTitle("stop recording", for: [])
+                button.setImage(earFill, for: [])
+                self.button.tintColor = nil
             } catch {
-                button.setTitle("not available", for: [])
+                button.setImage(earEmpty, for: [])
+                self.button.tintColor = UIColor(.gray)
             }
         }
     }
