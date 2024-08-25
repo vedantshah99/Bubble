@@ -42,6 +42,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
     var portraitConstraints: [NSLayoutConstraint] = []
     var landscapeConstraints: [NSLayoutConstraint] = []
     
+    var originalOrientation: SCNVector3?
+    
     
     // MARK: Custom LM Support
     @available(iOS 17, *)
@@ -85,6 +87,25 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
         
         // Set the view's delegate
         sceneView.delegate = self
+        
+        // Set the original orientation
+//        if let frame = sceneView.session.currentFrame {
+//            originalOrientation = simd_quaternion(frame.camera.transform)
+//        }
+        
+        
+    }
+    
+    // MARK: - SCNSceneRendererDelegate
+    func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {
+        //print(#function, sceneView.session.currentFrame)
+        // Set the original orientation
+        if let frame = sceneView.session.currentFrame {
+            if originalOrientation == nil {
+                let mat = SCNMatrix4(frame.camera.transform)
+                originalOrientation = SCNVector3(-1 * mat.m31, -1 * mat.m32, -1 * mat.m33)
+            }
+        }
     }
     
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -152,6 +173,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
                 }
             }
         }
+        
+        
     }
     
     private func startRecording() throws {
@@ -203,7 +226,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
             
             if let result = result {
                 // update text view
-                self.updateText(text: result.bestTranscription.formattedString, atPosition: SCNVector3(0, 0, -1))
+                self.updateText(text: result.bestTranscription.formattedString)
                 isFinal = result.isFinal
             }
             
@@ -257,6 +280,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
 
         // Run the view's session
         sceneView.session.run(configuration)
+        
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -266,15 +290,84 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
         sceneView.session.pause()
     }
     
-    func updateText(text: String, atPosition position: SCNVector3) {
-        let textGeometry = SCNText(string: insertNewlines(string: text, every: 20), extrusionDepth: 1.0)
-        textGeometry.firstMaterial?.diffuse.contents = UIColor.red
 
-        textNode.removeFromParentNode()
+    
+    func getUserVector() -> (SCNVector3, SCNVector3) { // (direction, position)
+        if let frame = self.sceneView.session.currentFrame {
+            let mat = SCNMatrix4(frame.camera.transform) // 4x4 transform matrix describing camera in world space
+            let dir = SCNVector3(-1 * mat.m31, -1 * mat.m32, -1 * mat.m33) // orientation of camera in world space
+            let pos = SCNVector3(mat.m41, mat.m42, mat.m43) // location of camera in world space
 
-        textNode = SCNNode(geometry: textGeometry)
-        textNode.position = SCNVector3(position.x, position.y + 0.01, position.z)
-        textNode.scale = SCNVector3(0.01, 0.01, 0.01)
+            return (dir, pos)
+        }
+        return (SCNVector3(0, 0, -1), SCNVector3(0, 0, -0.2))
+    }
+
+    func angleBetweenVectors(vectorA: SCNVector3, vectorB: SCNVector3) -> Float {
+        let dotProduct = vectorA.x * vectorB.x + vectorA.y * vectorB.y + vectorA.z * vectorB.z
+        let magnitudeA = sqrt(vectorA.x * vectorA.x + vectorA.y * vectorA.y + vectorA.z * vectorA.z)
+        let magnitudeB = sqrt(vectorB.x * vectorB.x + vectorB.y * vectorB.y + vectorB.z * vectorB.z)
+        let cosineAngle = dotProduct / (magnitudeA * magnitudeB)
+        return acos(cosineAngle)
+    }
+
+    func crossProduct(vectorA: SCNVector3, vectorB: SCNVector3) -> SCNVector3 {
+        let x = vectorA.y * vectorB.z - vectorA.z * vectorB.y
+        let y = vectorA.z * vectorB.x - vectorA.x * vectorB.z
+        let z = vectorA.x * vectorB.y - vectorA.y * vectorB.x
+        return SCNVector3(x, y, z)
+    }
+    
+    func updateText(text: String) {
+        guard let frame = sceneView.session.currentFrame else { return }
+        let (direction, pos) = getUserVector()
+        
+        var positionX: Float
+        var positionZ: Float
+
+        // If there's a previous direction, compare it with the current direction
+        if let originalDirection = originalOrientation {
+            // Calculate the angle difference between the two directions
+            let angleDifference = angleBetweenVectors(vectorA: originalDirection, vectorB: direction)
+
+            let angleDifferenceDegrees = angleDifference * 180 / .pi
+
+            // Determine the direction of rotation
+            let crossProduct = crossProduct(vectorA: originalDirection, vectorB: direction)
+            
+            let clockwise = crossProduct.z > 0
+            if clockwise {
+                print("\(angleDifferenceDegrees) clockwise (right)")
+            } else {
+                print("\(angleDifferenceDegrees) counter clockwise (left)")
+            }
+            
+            
+            
+            if clockwise {
+                positionX = -1 * sin(-1 * angleDifference)
+                positionZ = -1 * cos(-1 * angleDifference)
+            } else {
+                positionX = -1 * sin(angleDifference)
+                positionZ = -1 * cos(angleDifference)
+            }
+            
+            
+            
+            print(positionX, positionZ)
+            
+            // create text geometry
+            let textGeometry = SCNText(string: insertNewlines(string: text, every: 20), extrusionDepth: 1.0)
+            textGeometry.firstMaterial?.diffuse.contents = UIColor.red
+            
+            textNode.removeFromParentNode()
+
+            textNode = SCNNode(geometry: textGeometry)
+            textNode.position = SCNVector3(positionX, 0, positionZ)
+            textNode.scale = SCNVector3(0.01, 0.01, 0.01)
+        }
+
+        
 
         // Create a box that will act as a background for the text
         let (min, max) = textNode.boundingBox
@@ -283,8 +376,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
         let boxHeight = CGFloat(max.y - min.y) + 3
         let box = SCNBox(width: boxWidth, height: boxHeight, length: CGFloat(max.z - min.z), chamferRadius: 0.0)
         box.firstMaterial?.diffuse.contents = UIColor.white
-        
-        print(boxHeight * 0.45)
 
         // Create a node for the box and position it behind the text
         let boxNode = SCNNode(geometry: box)
