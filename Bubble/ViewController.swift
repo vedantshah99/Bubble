@@ -319,11 +319,12 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
     }
     
     func updateText(text: String) {
-        guard let frame = sceneView.session.currentFrame else { return }
-        let (direction, pos) = getUserVector()
+        let (direction, _) = getUserVector()
         
         var positionX: Float
         var positionZ: Float
+        
+        var distance: Float = 2.0
 
         // If there's a previous direction, compare it with the current direction
         if let originalDirection = originalOrientation {
@@ -363,8 +364,14 @@ class ViewController: UIViewController, ARSCNViewDelegate, SFSpeechRecognizerDel
             textNode.removeFromParentNode()
 
             textNode = SCNNode(geometry: textGeometry)
-            textNode.position = SCNVector3(positionX, 0, positionZ)
+            textNode.position = SCNVector3(positionX * distance, 0, positionZ * distance)
             textNode.scale = SCNVector3(0.01, 0.01, 0.01)
+            
+            
+            // Add a billboard constraint to make the text node always face the camera
+            let billboardConstraint = SCNBillboardConstraint()
+            billboardConstraint.freeAxes = SCNBillboardAxis.Y
+            textNode.constraints = [billboardConstraint]
         }
 
         
