@@ -31,12 +31,15 @@ class SceneManager: NSObject, ARSCNViewDelegate {
 
         // Create text geometry
         let textGeometry = SCNText(string: insertNewlines(string: text, every: 20), extrusionDepth: 1.0)
-        textGeometry.firstMaterial?.diffuse.contents = UIColor.red
+        textGeometry.firstMaterial?.diffuse.contents = UIColor.black
+        
 
         textNode.removeFromParentNode()
         textNode = SCNNode(geometry: textGeometry)
         textNode.position = position
         textNode.scale = SCNVector3(0.01, 0.01, 0.01)
+        
+        
 
         // Add a billboard constraint to make the text node always face the camera
         let billboardConstraint = SCNBillboardConstraint()
@@ -44,15 +47,42 @@ class SceneManager: NSObject, ARSCNViewDelegate {
         textNode.constraints = [billboardConstraint]
 
         // Adjust bounding box and add background box node
+        // Height ranges from 8.836 - 11.209
         let (min, max) = textNode.boundingBox
-        let boxWidth = CGFloat(max.x - min.x) + 5
-        let boxHeight = CGFloat(max.y - min.y) + 3
-        let box = SCNBox(width: boxWidth, height: boxHeight, length: CGFloat(max.z - min.z), chamferRadius: 0.0)
-        box.firstMaterial?.diffuse.contents = UIColor.white
-
-        let boxNode = SCNNode(geometry: box)
-        boxNode.position = SCNVector3(0, 0, -0.01)
-        textNode.addChildNode(boxNode)
+        let boxWidth = CGFloat(max.x - min.x)
+        let boxHeight = CGFloat(max.y - min.y)
+        print("text: \(boxWidth) and \(boxHeight)")
+        
+        // Load the speech bubble model
+        let speechBubbleScene = SCNScene(named: "art.scnassets/bubble.scn")
+        
+        // Get the speech bubble node
+        if let speechBubbleNode = speechBubbleScene?.rootNode.childNode(withName: "bubble", recursively: true) {
+            
+            // find height and width of bubble
+            let (bubbleMin, bubbleMax) = speechBubbleNode.boundingBox
+            let bubbleWidth = (bubbleMax.x - bubbleMin.x) * speechBubbleNode.scale.x
+            let bubbleHeight = (bubbleMax.y - bubbleMin.y) * speechBubbleNode.scale.y
+            print("bubble: \(bubbleWidth) and \(bubbleHeight)")
+            
+            // set position
+            speechBubbleNode.position = SCNVector3(textNode.position.x + (bubbleWidth * 0.5), textNode.position.y - bubbleHeight, textNode.position.z)
+            speechBubbleNode.pivot = SCNMatrix4MakeTranslation(0, -speechBubbleNode.boundingBox.max.y, 0)
+            
+            
+            let totalWidth = CGFloat(bubbleMax.x - bubbleMin.x)
+            let totalHeight = CGFloat(bubbleMax.y - bubbleMin.y)
+            speechBubbleNode.scale = SCNVector3(boxWidth / totalWidth, boxHeight / totalHeight, 0.03)
+            
+            // Change the color of the object
+            if let material = speechBubbleNode.geometry?.firstMaterial {
+                material.diffuse.contents = UIColor.white // Change to the desired color
+            }
+            
+            textNode.addChildNode(speechBubbleNode)
+        }
+        
+        
 
         sceneView.scene.rootNode.addChildNode(textNode)
     }
