@@ -51,7 +51,7 @@ class SceneManager: NSObject, ARSCNViewDelegate {
         let (min, max) = textNode.boundingBox
         let boxWidth = CGFloat(max.x - min.x)
         let boxHeight = CGFloat(max.y - min.y)
-        print("text: \(boxWidth) and \(boxHeight)")
+        //print("text: \(boxWidth) and \(boxHeight)")
         
         // Load the speech bubble model
         let speechBubbleScene = SCNScene(named: "art.scnassets/bubble.scn")
@@ -63,23 +63,30 @@ class SceneManager: NSObject, ARSCNViewDelegate {
             let (bubbleMin, bubbleMax) = speechBubbleNode.boundingBox
             let bubbleWidth = (bubbleMax.x - bubbleMin.x) * speechBubbleNode.scale.x
             let bubbleHeight = (bubbleMax.y - bubbleMin.y) * speechBubbleNode.scale.y
-            print("bubble: \(bubbleWidth) and \(bubbleHeight)")
+            //print("bubble: \(bubbleWidth) and \(bubbleHeight)")
             
-            // set position
-            speechBubbleNode.position = SCNVector3(textNode.position.x + (bubbleWidth * 0.5), textNode.position.y - bubbleHeight, textNode.position.z)
-            speechBubbleNode.pivot = SCNMatrix4MakeTranslation(0, -speechBubbleNode.boundingBox.max.y, 0)
+            let xOffset = (bubbleWidth ) / 2
+            let yOffset = bubbleHeight * 0.5
+            
+            
+            speechBubbleNode.position = SCNVector3(textNode.position.x + xOffset, textNode.position.y - yOffset, textNode.position.z)
+            //speechBubbleNode.pivot = SCNMatrix4MakeTranslation(0, -speechBubbleNode.boundingBox.max.y, 0)
             
             
             let totalWidth = CGFloat(bubbleMax.x - bubbleMin.x)
             let totalHeight = CGFloat(bubbleMax.y - bubbleMin.y)
-            speechBubbleNode.scale = SCNVector3(boxWidth / totalWidth, boxHeight / totalHeight, 0.03)
+            speechBubbleNode.scale = SCNVector3(boxWidth / totalWidth, (boxHeight / totalHeight) * 1.5, 0.03)
             
             // Change the color of the object
             if let material = speechBubbleNode.geometry?.firstMaterial {
                 material.diffuse.contents = UIColor.white // Change to the desired color
             }
-            
+//            print(textNode.position)
+//            print(speechBubbleNode.position)
             textNode.addChildNode(speechBubbleNode)
+            
+            print(textNode.position)
+            print(speechBubbleNode.position)
         }
         
         
@@ -90,13 +97,23 @@ class SceneManager: NSObject, ARSCNViewDelegate {
     
     private func insertNewlines(string: String, every n: Int) -> String {
         var result = ""
-        let characters = Array(string)
-        for i in 0..<characters.count {
-            if i % n == 0 && i != 0 {
+        let words = string.split(separator: " ") // Split the string into words
+        
+        var currentLength = 0
+        
+        for word in words {
+            if currentLength + word.count > n {
                 result += "\n"
+                currentLength = 0
+            } else if !result.isEmpty {
+                result += " "
+                currentLength += 1
             }
-            result.append(characters[i])
+            
+            result += word
+            currentLength += word.count
         }
+        
         return result
     }
     
