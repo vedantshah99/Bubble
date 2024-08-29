@@ -32,67 +32,56 @@ class SceneManager: NSObject, ARSCNViewDelegate {
         // Create text geometry
         let textGeometry = SCNText(string: insertNewlines(string: text, every: 20), extrusionDepth: 1.0)
         textGeometry.firstMaterial?.diffuse.contents = UIColor.black
-        
 
         textNode.removeFromParentNode()
         textNode = SCNNode(geometry: textGeometry)
-        textNode.position = position
         textNode.scale = SCNVector3(0.01, 0.01, 0.01)
-        
-        
+
+        // Adjust pivot to the top-right corner
+        let (min, max) = textNode.boundingBox
+        let textWidth = max.x - min.x
+        let textHeight = max.y - min.y
+        textNode.pivot = SCNMatrix4MakeTranslation(textWidth / 2, textHeight / 2, 0)
+
+        // Set the text node's position
+        textNode.position = position
 
         // Add a billboard constraint to make the text node always face the camera
         let billboardConstraint = SCNBillboardConstraint()
         billboardConstraint.freeAxes = SCNBillboardAxis.Y
         textNode.constraints = [billboardConstraint]
 
-        // Adjust bounding box and add background box node
-        // Height ranges from 8.836 - 11.209
-        let (min, max) = textNode.boundingBox
-        let boxWidth = CGFloat(max.x - min.x)
-        let boxHeight = CGFloat(max.y - min.y)
-        //print("text: \(boxWidth) and \(boxHeight)")
-        
         // Load the speech bubble model
-        let speechBubbleScene = SCNScene(named: "art.scnassets/bubble.scn")
-        
-        // Get the speech bubble node
-        if let speechBubbleNode = speechBubbleScene?.rootNode.childNode(withName: "bubble", recursively: true) {
-            
-            // find height and width of bubble
+        if let speechBubbleScene = SCNScene(named: "art.scnassets/bubble.scn"),
+           let speechBubbleNode = speechBubbleScene.rootNode.childNode(withName: "bubble", recursively: true) {
+
+            // Adjust pivot to the top-right corner for the speech bubble
             let (bubbleMin, bubbleMax) = speechBubbleNode.boundingBox
             let bubbleWidth = (bubbleMax.x - bubbleMin.x) * speechBubbleNode.scale.x
             let bubbleHeight = (bubbleMax.y - bubbleMin.y) * speechBubbleNode.scale.y
-            //print("bubble: \(bubbleWidth) and \(bubbleHeight)")
-            
-            let xOffset = (bubbleWidth ) / 2
-            let yOffset = bubbleHeight * 0.5
-            
-            
-            speechBubbleNode.position = SCNVector3(textNode.position.x + xOffset, textNode.position.y - yOffset, textNode.position.z)
-            //speechBubbleNode.pivot = SCNMatrix4MakeTranslation(0, -speechBubbleNode.boundingBox.max.y, 0)
-            
-            
+            speechBubbleNode.pivot = SCNMatrix4MakeTranslation(bubbleWidth / 2, bubbleHeight / 2, 0)
+
+            // Set the speech bubble's position to match the text node
+            speechBubbleNode.position = SCNVector3(textWidth / 2, 0, 0)
+
+            // Scale the speech bubble to fit the text
             let totalWidth = CGFloat(bubbleMax.x - bubbleMin.x)
             let totalHeight = CGFloat(bubbleMax.y - bubbleMin.y)
-            speechBubbleNode.scale = SCNVector3(boxWidth / totalWidth, (boxHeight / totalHeight) * 1.5, 0.03)
-            
-            // Change the color of the object
+            speechBubbleNode.scale = SCNVector3(CGFloat(textWidth) / totalWidth, CGFloat(textHeight) / totalHeight, 0.03)
+
+            // Change the color of the speech bubble
             if let material = speechBubbleNode.geometry?.firstMaterial {
                 material.diffuse.contents = UIColor.white // Change to the desired color
             }
-//            print(textNode.position)
-//            print(speechBubbleNode.position)
-            textNode.addChildNode(speechBubbleNode)
-            
-            print(textNode.position)
-            print(speechBubbleNode.position)
-        }
-        
-        
 
+            // Add the speech bubble as a child of the text node
+            textNode.addChildNode(speechBubbleNode)
+        }
+
+        // Add the text node to the scene
         sceneView.scene.rootNode.addChildNode(textNode)
     }
+
 
     
     private func insertNewlines(string: String, every n: Int) -> String {
