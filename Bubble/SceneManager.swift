@@ -42,6 +42,7 @@ class SceneManager: NSObject, ARSCNViewDelegate {
         let textWidth = max.x - min.x
         let textHeight = max.y - min.y
         textNode.pivot = SCNMatrix4MakeTranslation(textWidth / 2, textHeight / 2, 0)
+        print("text width: \(textWidth), text height: \(textHeight)")
 
         // Set the text node's position
         textNode.position = position
@@ -60,14 +61,23 @@ class SceneManager: NSObject, ARSCNViewDelegate {
             let bubbleWidth = (bubbleMax.x - bubbleMin.x) * speechBubbleNode.scale.x
             let bubbleHeight = (bubbleMax.y - bubbleMin.y) * speechBubbleNode.scale.y
             speechBubbleNode.pivot = SCNMatrix4MakeTranslation(bubbleWidth / 2, bubbleHeight / 2, 0)
+            
+            // width: 1 hello = 25.92; 2 hello = 54.61; 3 hello = 83.3
+            // height: 1 line = 8.84, 2 lines = 23.86; 3 lines = 38.86
+            
+            let yFactor = 8
 
             // Set the speech bubble's position to match the text node
-            speechBubbleNode.position = SCNVector3(textWidth / 2, 0, 0)
+            speechBubbleNode.position = SCNVector3((Int(textWidth) / 2), -1 * Int((0.5 * textHeight) - 2), 0)
+            print("pos: \(speechBubbleNode.position)")
 
             // Scale the speech bubble to fit the text
             let totalWidth = CGFloat(bubbleMax.x - bubbleMin.x)
             let totalHeight = CGFloat(bubbleMax.y - bubbleMin.y)
-            speechBubbleNode.scale = SCNVector3(CGFloat(textWidth) / totalWidth, CGFloat(textHeight) / totalHeight, 0.03)
+            speechBubbleNode.scale = SCNVector3(CGFloat(textWidth + 10) / totalWidth, CGFloat(textHeight + (0.7 * textHeight)) / totalHeight, 0.03)
+            
+            //print("scale: \(speechBubbleNode.scale.x) \(speechBubbleNode.scale.y)")
+            print("width: \(Float(totalWidth) * speechBubbleNode.scale.x); height: \(Float(totalHeight) * speechBubbleNode.scale.y)\n")
 
             // Change the color of the speech bubble
             if let material = speechBubbleNode.geometry?.firstMaterial {
