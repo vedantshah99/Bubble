@@ -32,6 +32,8 @@ class SceneManager: NSObject, ARSCNViewDelegate {
         // Create text geometry
         let textGeometry = SCNText(string: insertNewlines(string: text, every: 20), extrusionDepth: 1.0)
         textGeometry.firstMaterial?.diffuse.contents = UIColor.black
+        textGeometry.font = UIFont(name: "HelveticaNeue", size: 10) // Change to your desired font and size
+
 
         textNode.removeFromParentNode()
         textNode = SCNNode(geometry: textGeometry)
@@ -68,13 +70,13 @@ class SceneManager: NSObject, ARSCNViewDelegate {
             let yFactor = 8
 
             // Set the speech bubble's position to match the text node
-            speechBubbleNode.position = SCNVector3((Int(textWidth) / 2), -1 * Int((0.5 * textHeight) - 2), 0)
+            speechBubbleNode.position = SCNVector3((Int(textWidth) / 2), -1 * Int((0.5 * textHeight)), 0)
             print("pos: \(speechBubbleNode.position)")
 
             // Scale the speech bubble to fit the text
             let totalWidth = CGFloat(bubbleMax.x - bubbleMin.x)
             let totalHeight = CGFloat(bubbleMax.y - bubbleMin.y)
-            speechBubbleNode.scale = SCNVector3(CGFloat(textWidth + 10) / totalWidth, CGFloat(textHeight + (0.7 * textHeight)) / totalHeight, 0.03)
+            speechBubbleNode.scale = SCNVector3(CGFloat(textWidth + 10) / totalWidth, CGFloat(textHeight + (0.85 * textHeight)) / totalHeight, 0.03)
             
             //print("scale: \(speechBubbleNode.scale.x) \(speechBubbleNode.scale.y)")
             print("width: \(Float(totalWidth) * speechBubbleNode.scale.x); height: \(Float(totalHeight) * speechBubbleNode.scale.y)\n")
