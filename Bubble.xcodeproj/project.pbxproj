@@ -74,8 +74,8 @@
 				3355C9A12C73E52D00E34802 /* Assets.xcassets */,
 				3355C9A32C73E52D00E34802 /* LaunchScreen.storyboard */,
 				33A254C52C7D5D9B00D0FA40 /* SceneManager.swift */,
-				33A254C72C7D66CB00D0FA40 /* SpeechRecognitionManager.swift */,
 				33A254C92C7D72E000D0FA40 /* UIManager.swift */,
+				33A254C72C7D66CB00D0FA40 /* SpeechRecognitionManager.swift */,
 			);
 			path = Bubble;
 			sourceTree = "<group>";
