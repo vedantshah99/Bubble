@@ -39,6 +39,7 @@ class ViewController: UIViewController {
         let uiManager = UIManager(button: button)
         // Set the view's delegate
         sceneView.delegate = sceneManager
+        sceneManager.initializeFaceRectangle(in: sceneView)
         
         uiManager.setupButtonConstraints(in: sceneView)
         uiManager.updateConstraints()
