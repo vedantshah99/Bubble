@@ -13,6 +13,46 @@ class SceneManager: NSObject, ARSCNViewDelegate {
     private var originalOrientation: SCNVector3?
     private var textNode = SCNNode()
     
+    private var faceRectangle: UIView?
+    private var sequenceRequestHandler = VNSequenceRequestHandler()
+
+    // Initialize faceRectangle and add it to the sceneView in the ViewController
+    func initializeFaceRectangle(in sceneView: ARSCNView) {
+        faceRectangle = UIView()
+        faceRectangle?.layer.borderColor = UIColor.red.cgColor
+        faceRectangle?.layer.borderWidth = 2.0
+        faceRectangle?.backgroundColor = .clear
+        if let faceRectangle = faceRectangle {
+            sceneView.addSubview(faceRectangle)
+        }
+    }
+
+    func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
+        guard let sceneView = renderer as? ARSCNView, let currentFrame = sceneView.session.currentFrame else { return }
+        let pixelBuffer = currentFrame.capturedImage
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+        
+        // Face landmarks request for better accuracy
+        let faceLandmarksRequest = VNDetectFaceLandmarksRequest { (request, error) in
+            guard let observations = request.results as? [VNFaceObservation] else { return }
+            DispatchQueue.main.async {
+                if let firstFace = observations.first {
+                    self.handleFaceDetection(observation: firstFace, in: sceneView)
+                } else {
+                    self.faceRectangle?.frame = .zero
+                }
+            }
+        }
+        
+        try? sequenceRequestHandler.perform([faceLandmarksRequest], on: ciImage)
+    }
+
+    private func handleFaceDetection(observation: VNFaceObservation, in sceneView: ARSCNView) {
+        let boundingBox = observation.boundingBox
+        let boundingBoxOnScreen = boundingBox.convertToRotatedScreenCoordinates(for: sceneView.bounds)
+        faceRectangle?.frame = boundingBoxOnScreen
+    }
+    
     func setOriginalOrientation(in sceneView: ARSCNView) {
         if let frame = sceneView.session.currentFrame {
             if originalOrientation == nil {
@@ -145,4 +185,22 @@ class SceneManager: NSObject, ARSCNViewDelegate {
     }
     
     // Other methods related to SceneKit and ARKit...
+}
+
+
+extension CGRect {
+    func convertToRotatedScreenCoordinates(for viewBounds: CGRect) -> CGRect {
+        // Vision coordinates are normalized (0.0 to 1.0), where (0, 0) is bottom-left
+        // UIKit coordinates are normalized, with (0, 0) at top-left
+        // We want to rotate the bounding box by 90 degrees
+
+        
+        let rotatedWidth = self.size.height * viewBounds.width
+        let rotatedHeight = self.size.width * viewBounds.height
+        
+        let rotatedX = self.origin.y * viewBounds.width
+        let rotatedY = viewBounds.height - (1 - self.origin.x - self.width) * viewBounds.height // Flip after swapping
+
+        return CGRect(x: rotatedX, y: rotatedY - rotatedHeight, width: rotatedWidth, height: rotatedHeight)
+    }
 }
